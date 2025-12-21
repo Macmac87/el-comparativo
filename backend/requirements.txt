@@ -1,0 +1,66 @@
+# CarSearch VE - Backend Requirements
+
+# FastAPI Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Database
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.25
+alembic==1.13.1
+
+# Vector DB (pgvector)
+pgvector==0.2.4
+
+# Web Scraping
+playwright==1.41.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
+requests==2.31.0
+httpx==0.26.0
+
+# RAG & AI
+openai==1.10.0
+anthropic==0.18.0
+langchain==0.1.4
+langchain-openai==0.0.5
+tiktoken==0.5.2
+
+# Redis (caching & queue)
+redis==5.0.1
+hiredis==2.3.2
+
+# Task Queue
+celery==5.3.6
+flower==2.0.1
+
+# Data Processing
+pandas==2.2.0
+numpy==1.26.3
+
+# Utilities
+python-dotenv==1.0.1
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+email-validator==2.1.0
+python-dateutil==2.8.2
+
+# Additional auth dependencies
+bcrypt==4.1.2
+
+# Monitoring
+sentry-sdk==1.40.0
+
+# Testing
+pytest==8.0.0
+pytest-asyncio==0.23.4
+httpx==0.26.0
+
+# Development
+black==24.1.1
+ruff==0.1.14
+mypy==1.8.0

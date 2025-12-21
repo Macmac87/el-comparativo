@@ -1,0 +1,82 @@
+# El Comparativo - Environment Variables para Render
+# Copia estas variables al dashboard de Render
+
+# ============================================
+# VARIABLES REQUERIDAS
+# ============================================
+
+# Python version
+PYTHON_VERSION=3.11.0
+
+# Environment
+ENVIRONMENT=production
+
+# Secret key (GENERAR UNO NUEVO - ver instrucciones abajo)
+SECRET_KEY=CAMBIAR_POR_KEY_GENERADO
+
+# Database URL (copiar de Render PostgreSQL dashboard)
+# IMPORTANTE: Agregar ?sslmode=require al final
+DATABASE_URL=postgresql://user:password@host/db?sslmode=require
+
+# OpenAI API Key (para embeddings)
+OPENAI_API_KEY=sk-proj-TU_KEY_AQUI
+
+# Anthropic API Key (para query understanding)
+ANTHROPIC_API_KEY=sk-ant-TU_KEY_AQUI
+
+# ============================================
+# VARIABLES OPCIONALES
+# ============================================
+
+# Redis (opcional, para caching - configurar después)
+# REDIS_URL=redis://default:password@host:6379
+
+# Frontend URL (configurar cuando tengas frontend)
+# FRONTEND_URL=https://elcomparativo.ve
+
+# Sentry (opcional, para error tracking)
+# SENTRY_DSN=https://...
+
+# ============================================
+# INSTRUCCIONES
+# ============================================
+
+# Para generar SECRET_KEY:
+# Opción 1 (Python):
+#   python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+#
+# Opción 2 (OpenSSL):
+#   openssl rand -base64 32
+#
+# Copiar el resultado y reemplazar en SECRET_KEY arriba
+
+# Para obtener DATABASE_URL:
+# 1. Ir a Render dashboard
+# 2. Click en tu PostgreSQL database
+# 3. Click "Info" tab
+# 4. Copiar "External Database URL"
+# 5. IMPORTANTE: Agregar ?sslmode=require al final
+# 6. Pegar en DATABASE_URL arriba
+
+# ============================================
+# FORMATO PARA RENDER DASHBOARD
+# ============================================
+
+# En Render, agregar cada variable como:
+# Key: PYTHON_VERSION
+# Value: 3.11.0
+
+# Key: SECRET_KEY
+# Value: (tu key generado)
+
+# etc...
+
+# ============================================
+# VERIFICACIÓN
+# ============================================
+
+# Después de agregar todas las variables, verificar:
+# - 6 variables mínimo configuradas
+# - DATABASE_URL tiene ?sslmode=require
+# - SECRET_KEY es largo (32+ caracteres)
+# - API keys empiezan con sk-proj- y sk-ant-
