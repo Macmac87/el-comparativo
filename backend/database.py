@@ -44,17 +44,17 @@ async def init_db():
                 full_name VARCHAR(255),
                 phone VARCHAR(50),
                 
-                -- Subscription
+                # Subscription
                 subscription_tier VARCHAR(20) DEFAULT 'free',
                 subscription_status VARCHAR(20) DEFAULT 'active',
                 subscription_starts_at TIMESTAMP,
                 subscription_ends_at TIMESTAMP,
                 
-                -- Usage tracking
+                # Usage tracking
                 daily_searches_count INTEGER DEFAULT 0,
                 daily_searches_reset_at TIMESTAMP DEFAULT NOW(),
                 
-                -- Metadata
+                # Metadata
                 created_at TIMESTAMP DEFAULT NOW(),
                 updated_at TIMESTAMP DEFAULT NOW(),
                 last_login_at TIMESTAMP,
@@ -167,7 +167,7 @@ async def init_db():
             ON searches(created_at)
         """)
         
-        -- Saved searches
+        # Saved searches
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS saved_searches (
                 id SERIAL PRIMARY KEY,
@@ -184,7 +184,7 @@ async def init_db():
             ON saved_searches(user_id)
         """)
         
-        -- Saved vehicles (favorites)
+        # Saved vehicles (favorites)
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS saved_vehicles (
                 id SERIAL PRIMARY KEY,
@@ -206,7 +206,7 @@ async def init_db():
             ON saved_vehicles(vehicle_id)
         """)
         
-        -- Search history
+        # Search history
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS search_history (
                 id SERIAL PRIMARY KEY,
@@ -223,7 +223,7 @@ async def init_db():
             ON search_history(user_id, created_at DESC)
         """)
         
-        -- Payments
+        # Payments
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS payments (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
