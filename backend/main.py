@@ -3,7 +3,7 @@ El Comparativo - Main FastAPI Application
 RAG-powered vehicle search aggregator for Venezuela
 """
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import asyncpg
@@ -57,8 +57,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # Next.js dev
-        "https://carsearch.ve",   # Production
+        "http://localhost:3000",
+        "https://elcomparativo.ve",
         os.getenv("FRONTEND_URL", "*")
     ],
     allow_credentials=True,
@@ -74,7 +74,7 @@ app.include_router(auth_router)
 async def root():
     """Health check endpoint"""
     return {
-        "service": "CarSearch VE API",
+        "service": "El Comparativo API",
         "status": "online",
         "version": "1.0.0",
         "rag_enabled": True
@@ -104,37 +104,25 @@ async def conversational_search(
     request: ConversationalSearchRequest,
     current_user: dict = Depends(get_current_active_user)
 ):
-    """
-    RAG-powered conversational search (requires authentication)
-    
-    Example queries:
-    - "Busco una Toyota 4Runner 2018-2020 blanca menos de 35 mil dólares"
-    - "Pick-up diesel doble cabina que no sea de Caracas"
-    - "Camioneta automática con poco kilometraje bajo 20 mil"
-    """
+    """RAG-powered conversational search"""
     try:
-        # Check search limit
         can_search = await UserService.check_search_limit(current_user["id"])
         
         if not can_search:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Daily search limit reached. Upgrade to Premium for unlimited searches."
+                detail="Daily search limit reached."
             )
         
         rag_engine = app.state.rag_engine
-        
-        # Use RAG to perform semantic search
         results = await rag_engine.search(
             query=request.query,
             limit=request.limit or 20,
             filters=request.filters
         )
         
-        # Increment search count
         await UserService.increment_search_count(current_user["id"])
         
-        # Log search to history
         pool = get_db_pool()
         async with pool.acquire() as conn:
             await conn.execute("""
@@ -157,15 +145,9 @@ async def conversational_search(
 
 @app.post("/api/search", response_model=SearchResponse)
 async def traditional_search(request: SearchRequest):
-    """
-    Traditional filter-based search
-    
-    Filters: brand, model, year_min, year_max, price_max_usd, transmission, etc.
-    """
+    """Traditional filter-based search"""
     try:
         pool = get_db_pool()
-        
-        # Build SQL query dynamically based on filters
         query = "SELECT * FROM vehicles WHERE is_active = true"
         params = []
         param_count = 1
@@ -309,9 +291,4 @@ async def get_stats():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
