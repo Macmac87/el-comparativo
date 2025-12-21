@@ -94,7 +94,7 @@ class SearchResponse(BaseModel):
 
 class AlertCreate(BaseModel):
     """Create price alert"""
-    user_email: str = Field(..., regex=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+    user_email: str = Field(..., pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
     query: str = Field(..., min_length=3)
     filters: Optional[Dict[str, Any]] = None
     max_price_usd: Optional[Decimal] = None
