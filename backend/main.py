@@ -1,4 +1,4 @@
-""
+"""
 El Comparativo - Main FastAPI Application
 RAG-powered vehicle search aggregator for Venezuela
 """
