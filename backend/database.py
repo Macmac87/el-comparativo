@@ -7,7 +7,6 @@ import asyncpg
 import os
 from typing import Optional
 
-# Global connection pool
 _pool: Optional[asyncpg.Pool] = None
 
 
@@ -19,7 +18,6 @@ async def init_db():
     if not database_url:
         raise ValueError("DATABASE_URL environment variable not set")
     
-    # Create connection pool
     _pool = await asyncpg.create_pool(
         database_url,
         min_size=5,
@@ -27,15 +25,10 @@ async def init_db():
         command_timeout=60
     )
     
-    # Create tables and enable pgvector
     async with _pool.acquire() as conn:
-        # Enable pgvector extension
         await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        
-        # Create UUID extension
         await conn.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"")
         
-        # Create users table
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -43,33 +36,25 @@ async def init_db():
                 password_hash VARCHAR(255) NOT NULL,
                 full_name VARCHAR(255),
                 phone VARCHAR(50),
-                
-                # Subscription
                 subscription_tier VARCHAR(20) DEFAULT 'free',
                 subscription_status VARCHAR(20) DEFAULT 'active',
                 subscription_starts_at TIMESTAMP,
                 subscription_ends_at TIMESTAMP,
-                
-                # Usage tracking
                 daily_searches_count INTEGER DEFAULT 0,
                 daily_searches_reset_at TIMESTAMP DEFAULT NOW(),
-                
-                # Metadata
                 created_at TIMESTAMP DEFAULT NOW(),
                 updated_at TIMESTAMP DEFAULT NOW(),
                 last_login_at TIMESTAMP,
                 is_active BOOLEAN DEFAULT true,
                 email_verified BOOLEAN DEFAULT false,
                 verification_token VARCHAR(255),
-                
                 CONSTRAINT valid_subscription_tier 
                     CHECK (subscription_tier IN ('free', 'premium'))
             )
         """)
         
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_users_email 
-            ON users(email)
+            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)
         """)
         
         await conn.execute("""
@@ -77,7 +62,6 @@ async def init_db():
             ON users(subscription_tier, subscription_status)
         """)
         
-        # Create vehicles table
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS vehicles (
                 id SERIAL PRIMARY KEY,
@@ -104,44 +88,34 @@ async def init_db():
             )
         """)
         
-        # Create indexes for common queries
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_vehicles_brand 
-            ON vehicles(brand)
+            CREATE INDEX IF NOT EXISTS idx_vehicles_brand ON vehicles(brand)
         """)
         
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_vehicles_model 
-            ON vehicles(model)
+            CREATE INDEX IF NOT EXISTS idx_vehicles_model ON vehicles(model)
         """)
         
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_vehicles_year 
-            ON vehicles(year)
+            CREATE INDEX IF NOT EXISTS idx_vehicles_year ON vehicles(year)
         """)
         
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_vehicles_price_usd 
-            ON vehicles(price_usd)
+            CREATE INDEX IF NOT EXISTS idx_vehicles_price_usd ON vehicles(price_usd)
         """)
         
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_vehicles_location 
-            ON vehicles(location)
+            CREATE INDEX IF NOT EXISTS idx_vehicles_location ON vehicles(location)
         """)
         
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_vehicles_source 
-            ON vehicles(source)
+            CREATE INDEX IF NOT EXISTS idx_vehicles_source ON vehicles(source)
         """)
         
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_vehicles_active 
-            ON vehicles(is_active)
+            CREATE INDEX IF NOT EXISTS idx_vehicles_active ON vehicles(is_active)
         """)
         
-        # Create vector index for semantic search
-        # Using IVFFlat for better performance on large datasets
         await conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_vehicles_embedding 
             ON vehicles 
@@ -149,7 +123,6 @@ async def init_db():
             WITH (lists = 100)
         """)
         
-        # Create searches table for analytics
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS searches (
                 id SERIAL PRIMARY KEY,
@@ -163,11 +136,9 @@ async def init_db():
         """)
         
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_searches_created 
-            ON searches(created_at)
+            CREATE INDEX IF NOT EXISTS idx_searches_created ON searches(created_at)
         """)
         
-        # Saved searches
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS saved_searches (
                 id SERIAL PRIMARY KEY,
@@ -180,11 +151,9 @@ async def init_db():
         """)
         
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_saved_searches_user 
-            ON saved_searches(user_id)
+            CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches(user_id)
         """)
         
-        # Saved vehicles (favorites)
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS saved_vehicles (
                 id SERIAL PRIMARY KEY,
@@ -197,16 +166,13 @@ async def init_db():
         """)
         
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_saved_vehicles_user 
-            ON saved_vehicles(user_id)
+            CREATE INDEX IF NOT EXISTS idx_saved_vehicles_user ON saved_vehicles(user_id)
         """)
         
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_saved_vehicles_vehicle 
-            ON saved_vehicles(vehicle_id)
+            CREATE INDEX IF NOT EXISTS idx_saved_vehicles_vehicle ON saved_vehicles(vehicle_id)
         """)
         
-        # Search history
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS search_history (
                 id SERIAL PRIMARY KEY,
@@ -223,7 +189,6 @@ async def init_db():
             ON search_history(user_id, created_at DESC)
         """)
         
-        # Payments
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS payments (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -234,15 +199,13 @@ async def init_db():
                 payment_method VARCHAR(50),
                 transaction_id VARCHAR(255),
                 created_at TIMESTAMP DEFAULT NOW(),
-                
                 CONSTRAINT valid_payment_status 
                     CHECK (status IN ('pending', 'completed', 'failed', 'refunded'))
             )
         """)
         
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_payments_user 
-            ON payments(user_id, created_at DESC)
+            CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id, created_at DESC)
         """)
         
         print("✅ All database tables created successfully")
