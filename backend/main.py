@@ -1,5 +1,5 @@
-"""
-CarSearch VE - Main FastAPI Application
+""
+El Comparativo - Main FastAPI Application
 RAG-powered vehicle search aggregator for Venezuela
 """
 
@@ -11,16 +11,16 @@ from typing import Optional, List
 import os
 from dotenv import load_dotenv
 
-from .database import init_db, get_db_pool
-from .rag import RAGSearchEngine
-from .models import (
+from database import init_db, get_db_pool
+from rag import RAGSearchEngine
+from models import (
     VehicleResponse, 
     SearchRequest, 
     SearchResponse,
     ConversationalSearchRequest
 )
-from .auth_routes import router as auth_router
-from .auth import get_current_active_user, UserService
+from auth_routes import router as auth_router
+from auth import get_current_active_user, UserService
 
 load_dotenv()
 
@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="CarSearch VE API",
+    title="El Comparativo API",
     description="RAG-powered vehicle search aggregator for Venezuela",
     version="1.0.0",
     lifespan=lifespan
