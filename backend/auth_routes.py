@@ -8,14 +8,14 @@ from fastapi.security import OAuth2PasswordRequestForm
 from typing import Dict, Any
 from uuid import UUID
 
-from .auth import (
+from auth import (
     UserService,
     TokenManager,
     get_current_user,
     get_current_active_user,
     require_premium
 )
-from .auth_models import (
+from auth_models import (
     UserRegister,
     UserLogin,
     UserUpdate,
@@ -28,7 +28,7 @@ from .auth_models import (
     SubscriptionUpgrade,
     SubscriptionResponse
 )
-from .database import get_db_pool
+from database import get_db_pool
 
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])

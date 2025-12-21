@@ -12,7 +12,7 @@ from fastapi.security import OAuth2PasswordBearer
 import os
 from uuid import UUID, uuid4
 
-from .database import get_db_pool
+from database import get_db_pool
 
 
 # Security configuration

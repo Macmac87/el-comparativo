@@ -11,7 +11,7 @@ import json
 import os
 from datetime import datetime
 
-from .database import get_db_pool
+from database import get_db_pool
 
 
 class RAGSearchEngine:
