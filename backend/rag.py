@@ -16,14 +16,12 @@ class RAGSearchEngine:
     
     def __init__(self):
         """Initialize RAG engine with OpenAI and Anthropic"""
-        # OpenAI client for embeddings
         openai_key = os.getenv("OPENAI_API_KEY")
         if not openai_key:
             raise ValueError("OPENAI_API_KEY not set")
         
         self.openai_client = AsyncOpenAI(api_key=openai_key)
         
-        # Anthropic client for conversational search
         anthropic_key = os.getenv("ANTHROPIC_API_KEY")
         if not anthropic_key:
             raise ValueError("ANTHROPIC_API_KEY not set")
@@ -46,6 +44,42 @@ class RAGSearchEngine:
             return []
     
     
+    async def embed_vehicle(self, vehicle: Dict[str, Any]) -> List[float]:
+        """
+        Create embedding for a vehicle by combining all searchable text fields
+        """
+        text_parts = []
+        
+        if vehicle.get("brand"):
+            text_parts.append(f"Marca: {vehicle['brand']}")
+        
+        if vehicle.get("model"):
+            text_parts.append(f"Modelo: {vehicle['model']}")
+        
+        if vehicle.get("year"):
+            text_parts.append(f"Año: {vehicle['year']}")
+        
+        if vehicle.get("transmission"):
+            text_parts.append(f"Transmisión: {vehicle['transmission']}")
+        
+        if vehicle.get("fuel_type"):
+            text_parts.append(f"Combustible: {vehicle['fuel_type']}")
+        
+        if vehicle.get("color"):
+            text_parts.append(f"Color: {vehicle['color']}")
+        
+        if vehicle.get("location"):
+            text_parts.append(f"Ubicación: {vehicle['location']}")
+        
+        if vehicle.get("description"):
+            desc = vehicle['description'][:500]  # Limit description length
+            text_parts.append(f"Descripción: {desc}")
+        
+        combined_text = " | ".join(text_parts)
+        
+        return await self.create_embedding(combined_text)
+    
+    
     async def search(
         self,
         query: str,
@@ -58,21 +92,16 @@ class RAGSearchEngine:
         try:
             pool = get_db_pool()
             
-            # Parse query with Claude to extract filters
             parsed = await self._parse_query_with_claude(query)
             
-            # Merge with explicit filters
             if filters:
                 parsed.update(filters)
             
-            # Create embedding for semantic search
             query_embedding = await self.create_embedding(query)
             
             if not query_embedding:
-                # Fallback to filter-only search
                 return await self._filter_search(parsed, limit)
             
-            # Build SQL with vector similarity
             sql_query = """
                 SELECT *, 
                        (embedding <=> $1::vector) as similarity
@@ -120,7 +149,6 @@ class RAGSearchEngine:
             sql_query += f" ORDER BY similarity ASC LIMIT ${param_count}"
             params.append(limit)
             
-            # Execute query
             async with pool.acquire() as conn:
                 rows = await conn.fetch(sql_query, *params)
             
