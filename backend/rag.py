@@ -1,11 +1,11 @@
 """
 RAG Search Engine for El Comparativo
 Semantic vehicle search using embeddings and pgvector
-TEMPORARY: OpenAI disabled
 """
 
 import os
 from typing import List, Dict, Any, Optional
+from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
 
 from database import get_db_pool
@@ -15,7 +15,14 @@ class RAGSearchEngine:
     """RAG-powered vehicle search engine"""
     
     def __init__(self):
-        """Initialize RAG engine"""
+        """Initialize RAG engine with OpenAI and Anthropic"""
+        # OpenAI client for embeddings
+        openai_key = os.getenv("OPENAI_API_KEY")
+        if not openai_key:
+            raise ValueError("OPENAI_API_KEY not set")
+        
+        self.openai_client = AsyncOpenAI(api_key=openai_key)
+        
         # Anthropic client for conversational search
         anthropic_key = os.getenv("ANTHROPIC_API_KEY")
         if not anthropic_key:
@@ -23,9 +30,20 @@ class RAGSearchEngine:
         
         self.anthropic_client = AsyncAnthropic(api_key=anthropic_key)
         
-        # OpenAI temporarily disabled - will add later
-        self.openai_client = None
-        print("⚠️  RAG engine initialized WITHOUT OpenAI (embeddings disabled)")
+        print("✅ RAG engine initialized with OpenAI embeddings")
+    
+    
+    async def create_embedding(self, text: str) -> List[float]:
+        """Create embedding vector for text using OpenAI"""
+        try:
+            response = await self.openai_client.embeddings.create(
+                model="text-embedding-3-small",
+                input=text
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            print(f"Embedding error: {e}")
+            return []
     
     
     async def search(
@@ -35,8 +53,7 @@ class RAGSearchEngine:
         filters: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         """
-        Search vehicles using conversational query
-        Currently uses filters only (embeddings disabled)
+        Search vehicles using conversational query with semantic search
         """
         try:
             pool = get_db_pool()
@@ -48,10 +65,22 @@ class RAGSearchEngine:
             if filters:
                 parsed.update(filters)
             
-            # Build SQL query from parsed filters
-            sql_query = "SELECT * FROM vehicles WHERE is_active = true"
-            params = []
-            param_count = 1
+            # Create embedding for semantic search
+            query_embedding = await self.create_embedding(query)
+            
+            if not query_embedding:
+                # Fallback to filter-only search
+                return await self._filter_search(parsed, limit)
+            
+            # Build SQL with vector similarity
+            sql_query = """
+                SELECT *, 
+                       (embedding <=> $1::vector) as similarity
+                FROM vehicles 
+                WHERE is_active = true
+            """
+            params = [query_embedding]
+            param_count = 2
             
             if parsed.get("brand"):
                 sql_query += f" AND LOWER(brand) = LOWER(${param_count})"
@@ -88,7 +117,7 @@ class RAGSearchEngine:
                 params.append(f"%{parsed['location']}%")
                 param_count += 1
             
-            sql_query += f" ORDER BY updated_at DESC LIMIT ${param_count}"
+            sql_query += f" ORDER BY similarity ASC LIMIT ${param_count}"
             params.append(limit)
             
             # Execute query
@@ -99,6 +128,52 @@ class RAGSearchEngine:
             
         except Exception as e:
             print(f"RAG search error: {e}")
+            return []
+    
+    
+    async def _filter_search(self, filters: Dict[str, Any], limit: int) -> List[Dict[str, Any]]:
+        """Fallback filter-only search"""
+        try:
+            pool = get_db_pool()
+            sql_query = "SELECT * FROM vehicles WHERE is_active = true"
+            params = []
+            param_count = 1
+            
+            if filters.get("brand"):
+                sql_query += f" AND LOWER(brand) = LOWER(${param_count})"
+                params.append(filters["brand"])
+                param_count += 1
+            
+            if filters.get("model"):
+                sql_query += f" AND LOWER(model) LIKE LOWER(${param_count})"
+                params.append(f"%{filters['model']}%")
+                param_count += 1
+            
+            if filters.get("year_min"):
+                sql_query += f" AND year >= ${param_count}"
+                params.append(filters["year_min"])
+                param_count += 1
+            
+            if filters.get("year_max"):
+                sql_query += f" AND year <= ${param_count}"
+                params.append(filters["year_max"])
+                param_count += 1
+            
+            if filters.get("price_max_usd"):
+                sql_query += f" AND price_usd <= ${param_count}"
+                params.append(filters["price_max_usd"])
+                param_count += 1
+            
+            sql_query += f" ORDER BY updated_at DESC LIMIT ${param_count}"
+            params.append(limit)
+            
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(sql_query, *params)
+            
+            return [dict(row) for row in rows]
+            
+        except Exception as e:
+            print(f"Filter search error: {e}")
             return []
     
     
@@ -119,10 +194,8 @@ Respond with ONLY a JSON object, no explanation:
                 messages=[{"role": "user", "content": prompt}]
             )
             
-            # Extract JSON from response
             import json
             text = response.content[0].text
-            # Remove markdown code blocks if present
             text = text.replace("```json", "").replace("```", "").strip()
             return json.loads(text)
             
